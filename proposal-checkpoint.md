@@ -13,10 +13,8 @@ By implementing a simple STM package, I have the opportunity to take a deeper di
 I choose the Go programming language because it has built-in support for concurrency. Also I am learning Go this semester and programming with Go is very enjoyable.
 
 ## **Resources**
-There are a lot of good resources on TM and STM on the Internet.
-
 ### **Literature**
-Publications on TM and STM:
+There are a lot of publications on TM and STM. Some of them:
 * [Transactional Memory: Architectural Support for Lock-Free Data Structures](http://cs.brown.edu/~mph/HerlihyM93/herlihy93transactional.pdf)
 * [Software Transactional Memory](https://groups.csail.mit.edu/tds/papers/Shavit/ShavitTouitou-podc95.pdf)
 * [Beautiful Concurrency](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/beautiful.pdf)
