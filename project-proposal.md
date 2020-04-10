@@ -1,8 +1,9 @@
 # go-stm: Software Transactional Memory in Go
-// Name Here
+Team: Yanxing Pan  
+AndrewID: yanxingp
 
 ## Summary
-I would like to implement a software transactional memory package in the Go programming language and benchmark its performance under various workloads.
+I would like to implement a simple software transactional memory as a package in Golang and benchmark its performance under various workloads.
 
 ## Background
 // TODO
