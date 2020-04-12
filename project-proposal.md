@@ -1,6 +1,9 @@
-# **go-stm: Software Transactional Memory in Go**
+# **go-stm: Software Transactionl Memory in Go**
 Team: Yanxing Pan  
-AndrewID: yanxingp
+AndrewID: yanxingp 
+
+## **URL**
+[https://github.com/yanxingp/go-stm](https://github.com/yanxingp/go-stm)
 
 ## **Summary**
 I would like to implement a simple software transactional memory as a Go package, and benchmark its performance under different workloads.
@@ -41,7 +44,7 @@ Also, there are open-source implementations on STM for reference:
 * [nbronson's stm implementation for Scala](https://github.com/nbronson/scala-stm)
 * [decillion's stm implementation for Go](https://github.com/decillion/go-stm)
 
-## Goals and Deliverables
+## **Goals and Deliverables**
 The goals for STM implementation:
 * Implement a correct and robust STM package.
 * Avoid race, deadlock or priority inversion conditions.
@@ -53,12 +56,12 @@ The deliverables will be:
 * Final report that contains detailed description of software design and implementation, as well as benchmark results.
 * A Google Slide for presentation.
 
-## Platform Choice
+## **Platform Choice**
 Since this project is not about gaining computation speedup with parallelism, platform choice is not very important.
 
 Both development and benchmark will be on my own laptop. Should the need for larger machines arise, I will use the GHC machines.
 
-## Schedule
+## **Schedule**
 From the day this proposal is submitted, there will be about three weeks to finish this project.  
 I plan to divide them into 6 half-weeks and plan accordingly:
 
