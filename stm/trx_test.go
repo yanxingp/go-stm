@@ -143,7 +143,7 @@ func TestConcurentIncrement(t *testing.T) {
 }
 
 // Decellion's increment test
-// [https://github.com/decillion/go-stm/blob/master/tran_test.go]
+// https://github.com/decillion/go-stm/blob/master/tran_test.go
 func TestDecillion(t *testing.T) {
 	iter := 1000
 
