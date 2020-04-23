@@ -2,50 +2,54 @@
 // Author: Yanxing Pan (yanxingp)
 // Date: April 2020
 //
-// Using lazy-versioning and optimistic conflict detection.
+// Using lazy-versioning and a hybrid optimistic conflict detection.
 
 package stm
 
 import (
 	"container/list"
+	"sync/atomic"
 )
 
-type wlock uint64
-
-type version uint64
-
 // Global version-clock
-var globalClock version
+var globalClock uint64
 
 // Var - A STM variable (object).
 type Var struct {
 	// Address of the object's write-lock
-	lock wlock
+	// 1 - locked, 0 - unlocked
+	wlock uint64
+	// Version number
+	ver uint64
 	// Address of data.
 	// (Is this correct?)
 	data interface{}
 }
 
-// decodeWlock and encodeWlock - Helper functions to use with wlock.
-func decodeWlock(lock wlock) (bool, version) {
-	return (lock >> 63) == 1, version(uint64(lock) & (1<<63 - 1))
+// acquireLock - Try to acquire the write-lock of a variable.
+// Return value indicates whether the lock is successfully acquired.
+func (v *Var) acquireLock() bool {
+	// Make this bounded to avoid deadlock
+	stop := 10000000
+	for i := 0; i < stop; i++ {
+		if atomic.CompareAndSwapUint64(&v.wlock, 0, 1) {
+			return true
+		}
+	}
+	return false
 }
 
-func encodeWlock(locked bool, ver version) wlock {
-	if (ver >> 63) == 1 {
-		panic("Version number exceeded limit.")
-	}
-	if locked {
-		return wlock(1<<63 | uint64(ver))
-	}
-	return wlock(ver)
+// releaseLock - Release the write-lock of a variable.
+func (v *Var) releaseLock() {
+	v.wlock = 0
 }
 
 // NewVar - Create a STM variable.
-func NewVar(val interface{}) Var {
-	v := Var{}
+func NewVar(val interface{}) *Var {
+	v := &Var{}
 	v.data = val
-	v.lock = encodeWlock(false, globalClock)
+	v.wlock = 0
+	v.ver = globalClock
 	return v
 }
 
@@ -55,7 +59,7 @@ type Trx struct {
 	isReadOnly bool
 
 	// The current value of the global version clock
-	rv version
+	rv uint64
 
 	// Read-set and write-set as linked lists
 	rset, wset *list.List
@@ -64,12 +68,12 @@ type Trx struct {
 }
 
 // Read-set data type (load requests)
-type lreq struct {
+type rreq struct {
 	v *Var
 }
 
 // Read-set data type (store requests)
-type sreq struct {
+type wreq struct {
 	v   *Var
 	val interface{}
 }
@@ -78,43 +82,42 @@ type sreq struct {
 func (trx *Trx) Load(x *Var) interface{} {
 	// If the transaction already aborted, simply skip the rest
 	if !trx.success {
-		return nil
+		return x.data
 	}
 
 	// If lock is not free, or variable's version number is greater,
 	// abort and retry
-	locked, ver := decodeWlock(x.lock)
-	if locked || ver > trx.rv {
+	locked, ver := x.wlock, x.ver
+	if locked == 1 || ver > trx.rv {
 		trx.success = false
-		return nil
+		return x.data
 	}
 
-	// Life is easier if the transaction is read-only
+	// Life is easier if the transaction is read-only:
 	// No need to construct the read-set, simply validate version number
 	if trx.isReadOnly {
 		return x.data
 	}
 
-	// If it's a write transaction
-
+	// If it's a write transaction:
 	// Append to read-set
-	trx.rset.PushBack(lreq{v: x})
+	trx.rset.PushBack(rreq{v: x})
 
 	// Check if the read address is in write-set,
 	// to avoid read-write conflict
 	for e := trx.wset.Front(); e != nil; e = e.Next() {
-		if e == x {
-
+		if e.Value.(wreq).v == x {
+			// Read from write-set directly
+			// (Using type assertion here. Not sure if it's right..)
+			return e.Value.(wreq).val
 		}
 	}
 
-	// TODO
-
-	return nil
+	return x.data
 }
 
 // Store - Transactional set, change the value of STM variable x to v.
-func (trx *Trx) Store(x *Var, v interface{}) {
+func (trx *Trx) Store(x *Var, val interface{}) {
 	// If the transaction already aborted, simply skip the rest
 	if !trx.success {
 		return
@@ -126,7 +129,21 @@ func (trx *Trx) Store(x *Var, v interface{}) {
 		panic("Error: Store operation in read-only transaction.")
 	}
 
-	// TODO
+	// Check if the variable is already in write-set
+	found := false
+	for e := trx.wset.Front(); e != nil; e = e.Next() {
+		v := e.Value.(wreq).v
+		if v == x {
+			e.Value = wreq{v: v, val: val}
+			found = true
+			break
+		}
+	}
+
+	// If not in write-set, append to write-set
+	if !found {
+		trx.wset.PushBack(wreq{v: x, val: val})
+	}
 
 }
 
@@ -145,14 +162,86 @@ func Atomically(trans func(trx *Trx) interface{}) interface{} {
 		// which means carry out instructions but doesn't modify memory values
 		res = trans(trx)
 
+		// Debug
+		// fmt.Printf("write-set length = %v, read-set length = %v\n", trx.wset.Len(), trx.rset.Len())
+
 		// If no conflict detected during speculative execution, continue
 		// Otherwise, abort and retry the transaction
 		if trx.success {
-			// TODO
+			// Lock the entire write-set
+			lockedSet := list.New()
+			acquired := true
+			for e := trx.wset.Front(); e != nil; e = e.Next() {
+				v := e.Value.(wreq).v
+
+				// In case any of these lock is not successfully acquired
+				// the transaction fails
+				if !v.acquireLock() {
+					acquired = false
+					break
+				}
+
+				lockedSet.PushBack(v)
+			}
+
+			// If failed, need to release every acquired lock
+			if !acquired {
+				for e := lockedSet.Front(); e != nil; e = e.Next() {
+					v := e.Value.(*Var)
+					v.releaseLock()
+				}
+				trx.success = false
+				// And retry the transaction
+				continue
+			}
+
+			// Increment global version-lock
+			// and store the new value as wv (write-version)
+			wv := atomic.AddUint64(&globalClock, 1)
+
+			// Validate the read-set
+			// If rv + 1 = wv, this validation can be skipped
+			// because no other transaction could have intervened
+			if wv != trx.rv+1 {
+				valid := true
+				for e := trx.rset.Front(); e != nil; e = e.Next() {
+					v := e.Value.(rreq).v
+					locked, ver := v.wlock, v.ver
+					if locked == 1 || ver > trx.rv {
+						valid = false
+						break
+					}
+				}
+
+				// If failed, need to release every acquired lock
+				if !valid {
+					for e := lockedSet.Front(); e != nil; e = e.Next() {
+						v := e.Value.(*Var)
+						v.releaseLock()
+					}
+					trx.success = false
+					// And retry the transaction
+					continue
+				}
+			}
+
+			// Commit and release the lock
+			for e := trx.wset.Front(); e != nil; e = e.Next() {
+				v := e.Value.(wreq).v
+				val := e.Value.(wreq).val
+
+				// Store the new value to the location
+				v.data = val
+				// Release the lock
+				//  and change the variable's version number to wv
+				v.releaseLock()
+				v.ver = wv
+			}
+
+			// A transaction is successfully committed.
+			trx.success = true
 		}
 	}
-
-	// TODO
 
 	return res
 }
