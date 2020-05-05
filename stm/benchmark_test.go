@@ -11,6 +11,9 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+
+	de "github.com/decillion/go-stm"
+	lu "github.com/lukechampine/stm"
 )
 
 // BenchmarkRead - All reads no contention.
@@ -112,6 +115,62 @@ func BenchmarkRead90Write10Trx(b *testing.B) {
 				Atomically(inc)
 			} else {
 				Atomically(load)
+			}
+		}
+	})
+}
+
+func BenchmarkRead90Write10Decillion(b *testing.B) {
+	x := de.New(0)
+	y := de.New(0)
+
+	inc := func(rec *de.TRec) interface{} {
+		rec.Store(x, rec.Load(x).(int)+1)
+		rec.Store(y, rec.Load(y).(int)+1)
+		return nil
+	}
+	load := func(rec *de.TRec) interface{} {
+		rec.Load(x)
+		rec.Load(y)
+		return nil
+	}
+	b.ResetTimer()
+
+	var counter uint64
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			id := atomic.AddUint64(&counter, 1)
+			if id%10 == 0 {
+				de.Atomically(inc)
+			} else {
+				de.Atomically(load)
+			}
+		}
+	})
+}
+
+func BenchmarkRead90Write10Lukechampine(b *testing.B) {
+	x := lu.NewVar(0)
+	y := lu.NewVar(0)
+
+	inc := func(tx *lu.Tx) {
+		tx.Set(x, tx.Get(x).(int)+1)
+		tx.Set(y, tx.Get(y).(int)+1)
+	}
+	load := func(tx *lu.Tx) {
+		tx.Get(x)
+		tx.Get(y)
+	}
+	b.ResetTimer()
+
+	var counter uint64
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			id := atomic.AddUint64(&counter, 1)
+			if id%10 == 0 {
+				lu.Atomically(inc)
+			} else {
+				lu.Atomically(load)
 			}
 		}
 	})
