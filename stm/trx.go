@@ -30,7 +30,7 @@ type Var struct {
 // Return value indicates whether the lock is successfully acquired.
 func (v *Var) acquireLock() bool {
 	// Make this bounded to avoid deadlock
-	stop := 10000000
+	stop := 1
 	for i := 0; i < stop; i++ {
 		if atomic.CompareAndSwapUint64(&v.wlock, 0, 1) {
 			return true
