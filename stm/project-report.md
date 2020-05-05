@@ -106,6 +106,7 @@ type Trx struct {
 **4. Algorithm Workflow & Conflict Dection**
 Now that we have the necessary data structures, we can briefly describe the workflow of this algorithm:
 
+
 ## **Results**
 
 ## **References**
