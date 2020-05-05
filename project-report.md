@@ -26,7 +26,7 @@ And a few functions:
 * `func NewVar(val interface{})`: Create a transactional variable with the value `val`.
 * `func (trx *Trx) Load(x *Var)`: Read a transactional variable `x`'s value in a transaction.
 * `func (trx *Trx) Store(x *Var, val interface{})`: Write the value `val` to transactional variable `x`.
-* `func Atomically(trans func(trx *Trx) interface{})`: Execute the transaction `trans` atomically. `transact` is a callback function that must have  a `Trx` type as its parameter. The `Atomically` function will return the return value of `trans`.
+* `func Atomically(trans func(trx *Trx) interface{})`: Execute the transaction `trans` atomically. `trans` is a callback function that must have  a `Trx` type as its parameter. The `Atomically` function will return the return value of `trans`.
 * `func ReadOnlyAtomically(trans func(trx *Trx) interface{})`: A read-only version of `Atomically` to achieve higher performance. Only `Load` operations are allowed in the callback `trans`; otherwise, the program panics.
 
 The API is very simple but is able to demonstate the capability of STM.
