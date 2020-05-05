@@ -1,3 +1,10 @@
+// benchmark_test.go - Benchmarking the performance of stm implementation 
+// under different workloads and in comparision with the mutex lock.
+// Insipred by work of decellion 
+// (https://github.com/decillion/go-stm/blob/master/benchmark/bench_test.go)
+// Author: Yanxing Pan (yanxingp)
+// Date: April 2020
+
 package stm
 
 import (
