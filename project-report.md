@@ -53,6 +53,9 @@ func BasicUsage() {
 	fmt.Println(nval)
 }
 ```
+
+<div style="page-break-after: always;"></div>
+
 ## **TL2 Algorithm & Implementation**
 
 ### **1. Global Version-Clock**
@@ -123,6 +126,8 @@ As you can see, specific rules are set up to avoid read-write conflict and write
 
 For the read-only transaction, things are much simplier - no `read-set` or `write-set` are needed and the only work to be done is to perform validations.
 
+<div style="page-break-after: always;"></div>
+
 In my implementation, the transaction is placed inside a abort-retry loop that only exits upon seccess:
 ```go
 func Atomically(trans func(trx *Trx) interface{}) interface{} {
@@ -141,6 +146,8 @@ func Atomically(trans func(trx *Trx) interface{}) interface{} {
 And the implementation closely follows the workflow described above.
 
 If you are interested in the details, you can go visit the git repository from the link at the top. The code is well-commented.
+
+<div style="page-break-after: always;"></div>
 
 ## **Testing & Conflict Dection**
 
@@ -170,6 +177,8 @@ Third, during the `write-set` lock acquisition step, a transaction must be able 
 
 These are the basic testing I have performed on my implementation. Thanks to Go's built-in testing facilities, testing process is made very smooth.
 
+<div style="page-break-after: always;"></div>
+
 ## **Benchmarking**
 
 The following benchmarking are performed with Go's built-in benchmarking facilities, which are great.
@@ -192,13 +201,15 @@ BenchmarkReadOnlyTrxRO-8                23.8 ns/op
 ```
 Indeed, there is a significant improvement in the performance of `ReadOnlyAtomically`.
 
-### **2. Performance Comparision with Others' Implementations
+### **2. Performance Comparision with Others' Implementations**
 
 It is interesting to see how my implementation compares with others' work. I find two other implementations from GitHub:
 * [decillion's stm implementation for Go](https://github.com/decillion/go-stm)
 * [lukechampine and anacrolix's stm implementation for Go](https://github.com/anacrolix/stm)
 
 Among the two of them, decillion is using TL2 algorithm and lukechampine is not. 
+
+<div style="page-break-after: always;"></div>
 
 Benchmarking the performance with [decillion's benchmarking code](https://github.com/decillion/go-stm/blob/master/benchmark/bench_test.go):
 
