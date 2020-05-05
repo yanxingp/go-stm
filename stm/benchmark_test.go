@@ -109,3 +109,85 @@ func BenchmarkRead90Write10Trx(b *testing.B) {
 		}
 	})
 }
+
+func BenchmarkRead70Write30Mutex(b *testing.B) {
+	var x, y int
+	mu := &sync.RWMutex{}
+	b.ResetTimer()
+
+	var counter uint64
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			id := atomic.AddUint64(&counter, 1)
+			if id%10 < 3 {
+				mu.Lock()
+				x++
+				y++
+				mu.Unlock()
+			} else {
+				mu.RLock()
+				_ = x
+				_ = y
+				mu.RUnlock()
+			}
+		}
+	})
+}
+
+func BenchmarkRead70Write30Trx(b *testing.B) {
+	x := NewVar(0)
+	y := NewVar(0)
+
+	inc := func(trx *Trx) interface{} {
+		trx.Store(x, trx.Load(x).(int)+1)
+		trx.Store(y, trx.Load(y).(int)+1)
+		return nil
+	}
+	load := func(trx *Trx) interface{} {
+		trx.Load(x)
+		trx.Load(y)
+		return nil
+	}
+	b.ResetTimer()
+
+	var counter uint64
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			id := atomic.AddUint64(&counter, 1)
+			if id%10 < 3 {
+				Atomically(inc)
+			} else {
+				Atomically(load)
+			}
+		}
+	})
+}
+
+func BenchmarkRead50Write50Trx(b *testing.B) {
+	x := NewVar(0)
+	y := NewVar(0)
+
+	inc := func(trx *Trx) interface{} {
+		trx.Store(x, trx.Load(x).(int)+1)
+		trx.Store(y, trx.Load(y).(int)+1)
+		return nil
+	}
+	load := func(trx *Trx) interface{} {
+		trx.Load(x)
+		trx.Load(y)
+		return nil
+	}
+	b.ResetTimer()
+
+	var counter uint64
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			id := atomic.AddUint64(&counter, 1)
+			if id%10 < 5 {
+				Atomically(inc)
+			} else {
+				Atomically(load)
+			}
+		}
+	})
+}
