@@ -39,12 +39,12 @@ func BasicUsage() {
     v := NewVar(old)
     
     // Define the transaction
-	atomicIncrement := func(trx *Trx) interface{} {
+    atomicIncrement := func(trx *Trx) interface{} {
         // Perform read & write ops inside the transaction
-		val := trx.Load(v).(int)
-		trx.Store(v, val+1)
-		nval := trx.Load(v).(int)
-		return nval
+	val := trx.Load(v).(int)
+	trx.Store(v, val+1)
+	nval := trx.Load(v).(int)
+	return nval
     }
     
     // Execute the transaction atomically
