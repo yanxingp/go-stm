@@ -50,7 +50,7 @@ func BasicUsage() {
     // Execute the transaction atomically
     nval := Atomically(atomicIncrement)
     
-	fmt.Println(nval)
+    fmt.Println(nval)
 }
 ```
 
