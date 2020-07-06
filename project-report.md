@@ -131,12 +131,12 @@ For the read-only transaction, things are much simplier - no `read-set` or `writ
 In my implementation, the transaction is placed inside a abort-retry loop that only exits upon seccess:
 ```go
 func Atomically(trans func(trx *Trx) interface{}) interface{} {
-	// Initialize transaction bookkeeper with corresponding mode
-	trx := NewTrx(false)
+    // Initialize transaction bookkeeper with corresponding mode
+    trx := NewTrx(false)
     var res interface{} // Result of the transaction to be returned
     
-	// Keep retrying until the transaction is committed
-	for !trx.success {
+    // Keep retrying until the transaction is committed
+    for !trx.success {
         // ...
     }
     
